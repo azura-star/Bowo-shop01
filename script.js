@@ -6,7 +6,7 @@ const defaultMenu = [
 ];
 
 let keranjang = [];
-let idPesananAktif = null; // Menyimpan ID pesanan yang sedang dibuat siswa
+let idPesananAktif = null;
 
 // Render Menu Pelanggan
 function renderMenuPelanggan() {
@@ -36,14 +36,17 @@ function renderMenuPelanggan() {
       div.className = 'menu-item disabled';
       div.innerHTML = `
         <div class="menu-info">
-          <h4>${item.nama} <span class="badge-out">SLOT OUT</span></h4>
+          <h4>${item.nama} <span class="badge-out" style="color:#ff4d4d; font-size:0.75rem;">(SLOT OUT)</span></h4>
           <span class="price">Rp ${item.harga.toLocaleString('id-ID')}</span>
         </div>
-        <button class="btn-add btn-disabled" disabled>Habis</button>
+        <button class="btn-add btn-disabled" disabled style="background:#333; color:#777; cursor:not-allowed;">Habis</button>
       `;
     }
     container.appendChild(div);
   });
+
+  // Cek apakah siswa ini punya sesi pesanan aktif yang tersimpan di browser
+  cekPesananAktifSiswa();
 }
 
 function tambahKeKeranjang(nama, harga) {
@@ -56,7 +59,6 @@ function tambahKeKeranjang(nama, harga) {
   updateTampilanKeranjang();
 }
 
-// Fungsi Mengurangi Jumlah Makanan di Keranjang (Jika Kelebihan)
 function kurangiDariKeranjang(nama) {
   const itemAda = keranjang.find(item => item.nama === nama);
   if (itemAda) {
@@ -92,8 +94,8 @@ function updateTampilanKeranjang() {
       <span>${item.nama} (${item.jumlah}x)</span>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="color: var(--gold-bright);">Rp ${subtotal.toLocaleString('id-ID')}</span>
-        <button onclick="kurangiDariKeranjang('${item.nama}')" style="background: #ff4d4d; color: #fff; border: none; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; font-weight: bold;">-</button>
-        <button onclick="tambahKeKeranjang('${item.nama}', ${item.harga})" style="background: #28a745; color: #fff; border: none; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
+        <button type="button" onclick="kurangiDariKeranjang('${item.nama}')" style="background: #ff4d4d; color: #fff; border: none; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; font-weight: bold;">-</button>
+        <button type="button" onclick="tambahKeKeranjang('${item.nama}', ${item.harga})" style="background: #28a745; color: #fff; border: none; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
       </div>
     `;
     listKeranjang.appendChild(li);
@@ -119,8 +121,7 @@ function simpanPesanan(event) {
   }
 
   const total = keranjang.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
-
-  idPesananAktif = Date.now(); // Buat ID unik pesanan ini
+  idPesananAktif = Date.now();
 
   const pesananBaru = {
     id: idPesananAktif,
@@ -135,10 +136,11 @@ function simpanPesanan(event) {
   const daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
   daftarPesanan.push(pesananBaru);
   localStorage.setItem('pesananKantin', JSON.stringify(daftarPesanan));
+  
+  // Simpan ID pesanan aktif khusus device siswa ini agar tidak hilang saat refresh/keluar masuk web
+  localStorage.setItem('idPesananAktifSiswa', idPesananAktif);
 
   tampilkanNotaPribadi(pesananBaru);
-
-  // Sembunyikan form & menu agar siswa tahu pesanan sudah dikirim
   alert('Pesanan berhasil dikirim ke kantin!');
 }
 
@@ -164,18 +166,33 @@ function tampilkanNotaPribadi(pesanan) {
   `;
 }
 
+// Cek apakah siswa memiliki pesanan aktif yang tersimpan di browser miliknya sendiri
+function cekPesananAktifSiswa() {
+  const savedId = localStorage.getItem('idPesananAktifSiswa');
+  if (!savedId) return;
+
+  const daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
+  const pesananDitemukan = daftarPesanan.find(p => p.id == savedId);
+
+  if (pesananDitemukan) {
+    idPesananAktif = parseInt(savedId);
+    tampilkanNotaPribadi(pesananDitemukan);
+  } else {
+    // Jika ternyata sudah dihapus oleh admin, bersihkan cache lokal siswa
+    localStorage.removeItem('idPesananAktifSiswa');
+  }
+}
+
 // Fitur Membatalkan Pesanan yang Telah Dibuat
 function batalkanPesananAktif() {
   if (!idPesananAktif) return;
 
   if (confirm('Yakin ingin membatalkan pesanan ini?')) {
     let daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
-    
-    // Hapus pesanan berdasarkan ID uniknya dari localStorage agar hilang juga di Admin
     daftarPesanan = daftarPesanan.filter(p => p.id !== idPesananAktif);
     localStorage.setItem('pesananKantin', JSON.stringify(daftarPesanan));
+    localStorage.removeItem('idPesananAktifSiswa');
 
-    // Sembunyikan nota & reset keranjang
     document.getElementById('nota-section').style.display = 'none';
     keranjang = [];
     idPesananAktif = null;
