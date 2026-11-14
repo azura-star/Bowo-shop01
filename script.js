@@ -5,8 +5,8 @@ const defaultMenu = [
   { id: 4, nama: 'Roti Bakar Cokelat', harga: 7000, ada: false }
 ];
 
-let keranjang = [];
-let idPesananAktif = null;
+let keranjang = JSON.parse(localStorage.getItem('keranjangSiswa')) || [];
+let idPesananAktif = localStorage.getItem('idPesananAktifSiswa') || null;
 
 // Render Menu Pelanggan
 function renderMenuPelanggan() {
@@ -45,7 +45,8 @@ function renderMenuPelanggan() {
     container.appendChild(div);
   });
 
-  // Cek apakah siswa ini punya sesi pesanan aktif yang tersimpan di browser
+  // Perbarui tampilan keranjang dan cek nota aktif saat halaman dimuat
+  updateTampilanKeranjang();
   cekPesananAktifSiswa();
 }
 
@@ -56,6 +57,9 @@ function tambahKeKeranjang(nama, harga) {
   } else {
     keranjang.push({ nama, harga, jumlah: 1 });
   }
+  
+  // Simpan ke localStorage agar tidak hilang saat keluar/refresh
+  localStorage.setItem('keranjangSiswa', JSON.stringify(keranjang));
   updateTampilanKeranjang();
 }
 
@@ -67,6 +71,8 @@ function kurangiDariKeranjang(nama) {
       keranjang = keranjang.filter(item => item.nama !== nama);
     }
   }
+  
+  localStorage.setItem('keranjangSiswa', JSON.stringify(keranjang));
   updateTampilanKeranjang();
 }
 
@@ -121,10 +127,11 @@ function simpanPesanan(event) {
   }
 
   const total = keranjang.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
-  idPesananAktif = Date.now();
+  const idUnikBaru = Date.now();
+  idPesananAktif = idUnikBaru;
 
   const pesananBaru = {
-    id: idPesananAktif,
+    id: idUnikBaru,
     nama,
     kelas,
     catatan,
@@ -137,8 +144,9 @@ function simpanPesanan(event) {
   daftarPesanan.push(pesananBaru);
   localStorage.setItem('pesananKantin', JSON.stringify(daftarPesanan));
   
-  // Simpan ID pesanan aktif khusus device siswa ini agar tidak hilang saat refresh/keluar masuk web
+  // Simpan status pesanan aktif & identitas form agar tidak hilang saat keluar web
   localStorage.setItem('idPesananAktifSiswa', idPesananAktif);
+  localStorage.setItem('dataFormSiswa', JSON.stringify({ nama, kelas, catatan }));
 
   tampilkanNotaPribadi(pesananBaru);
   alert('Pesanan berhasil dikirim ke kantin!');
@@ -166,7 +174,7 @@ function tampilkanNotaPribadi(pesanan) {
   `;
 }
 
-// Cek apakah siswa memiliki pesanan aktif yang tersimpan di browser miliknya sendiri
+// Cek apakah siswa memiliki pesanan aktif sebelumnya saat halaman dibuka kembali
 function cekPesananAktifSiswa() {
   const savedId = localStorage.getItem('idPesananAktifSiswa');
   if (!savedId) return;
@@ -175,11 +183,20 @@ function cekPesananAktifSiswa() {
   const pesananDitemukan = daftarPesanan.find(p => p.id == savedId);
 
   if (pesananDitemukan) {
-    idPesananAktif = parseInt(savedId);
+    idPesananAktif = savedId;
     tampilkanNotaPribadi(pesananDitemukan);
+
+    // Munculkan kembali data form jika tersimpan
+    const savedForm = JSON.parse(localStorage.getItem('dataFormSiswa'));
+    if (savedForm) {
+      if(document.getElementById('nama')) document.getElementById('nama').value = savedForm.nama;
+      if(document.getElementById('kelas')) document.getElementById('kelas').value = savedForm.kelas;
+      if(document.getElementById('catatan')) document.getElementById('catatan').value = savedForm.catatan;
+    }
   } else {
-    // Jika ternyata sudah dihapus oleh admin, bersihkan cache lokal siswa
+    // Jika pesanan sudah dihapus oleh admin, bersihkan memori lokal siswa
     localStorage.removeItem('idPesananAktifSiswa');
+    localStorage.removeItem('dataFormSiswa');
   }
 }
 
@@ -189,14 +206,23 @@ function batalkanPesananAktif() {
 
   if (confirm('Yakin ingin membatalkan pesanan ini?')) {
     let daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
-    daftarPesanan = daftarPesanan.filter(p => p.id !== idPesananAktif);
+    daftarPesanan = daftarPesanan.filter(p => p.id != idPesananAktif);
     localStorage.setItem('pesananKantin', JSON.stringify(daftarPesanan));
+    
+    // Hapus penyimpanan sesi siswa
     localStorage.removeItem('idPesananAktifSiswa');
+    localStorage.removeItem('dataFormSiswa');
+    localStorage.removeItem('keranjangSiswa');
 
     document.getElementById('nota-section').style.display = 'none';
     keranjang = [];
     idPesananAktif = null;
     updateTampilanKeranjang();
+
+    // Kosongkan form input
+    if(document.getElementById('nama')) document.getElementById('nama').value = '';
+    if(document.getElementById('kelas')) document.getElementById('kelas').value = '';
+    if(document.getElementById('catatan')) document.getElementById('catatan').value = '';
 
     alert('Pesanan berhasil dibatalkan.');
   }
