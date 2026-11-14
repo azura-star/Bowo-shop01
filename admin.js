@@ -1,4 +1,4 @@
-// Password asli dikunci dengan enkripsi Base64 ("kantinsmp123" -> "a2FudGluc21wMTIz")
+// Password asli dikunci dengan enkripsi Base64
 const ENCRYPTED_PASSWORD = "YmVsbGFqZWxlaw=="; 
 const MAX_ATTEMPTS = 3;             
 const BASE_LOCKOUT_TIME = 30000;    // Durasi awal hukuman: 30 detik
@@ -77,11 +77,9 @@ function prosesLogin(e) {
   let failedAttempts = parseInt(localStorage.getItem('adminFailedAttempts')) || 0;
   const msg = document.getElementById('login-msg');
 
-  // Enkripsi input dari user ke Base64 lalu bandingkan dengan kode rahasia
   const hashedInput = btoa(inputPass);
 
   if (hashedInput === ENCRYPTED_PASSWORD) {
-    // Berhasil Login
     localStorage.setItem('adminFailedAttempts', '0');
     localStorage.removeItem('adminLockoutUntil');
     localStorage.setItem('adminLockoutLevel', '0'); 
@@ -95,7 +93,6 @@ function prosesLogin(e) {
     renderPengaturanStok();
     tampilkanRekap();
   } else {
-    // Password Salah
     failedAttempts++;
     localStorage.setItem('adminFailedAttempts', failedAttempts);
     document.getElementById('admin-pass').value = '';
@@ -198,7 +195,7 @@ function hapusMenu(id) {
   }
 }
 
-// 5. Rekap Pesanan Masuk
+// 5. Rekap Pesanan Masuk & Fitur Hapus 1-1
 function tampilkanRekap() {
   const rekapContainer = document.getElementById('rekap-container');
   if (!rekapContainer) return;
@@ -214,6 +211,7 @@ function tampilkanRekap() {
   daftarPesanan.forEach((pesanan) => {
     const div = document.createElement('div');
     div.className = 'rekap-item';
+    div.style.cssText = 'position: relative;';
 
     let rincianItems = '';
     pesanan.items.forEach(item => {
@@ -221,13 +219,30 @@ function tampilkanRekap() {
     });
 
     div.innerHTML = `
-      <div><strong>${pesanan.nama}</strong> (${pesanan.kelas}) - <small style="color:#aaa;">${pesanan.waktu}</small></div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <strong>${pesanan.nama}</strong> (${pesanan.kelas}) - <small style="color:#aaa;">${pesanan.waktu}</small>
+        </div>
+        <button onclick="hapusSatuPesanan(${pesanan.id})" title="Hapus Pesanan Ini" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.3); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">
+          <i class="fa-solid fa-trash"></i> Hapus
+        </button>
+      </div>
       <ul class="rekap-list">${rincianItems}</ul>
       <div>Catatan: <em>${pesanan.catatan}</em></div>
       <div style="margin-top: 6px; color: var(--gold-main);">Total Tagihan: <strong>Rp ${pesanan.total.toLocaleString('id-ID')}</strong></div>
     `;
     rekapContainer.appendChild(div);
   });
+}
+
+// Fungsi Baru: Hapus 1 Pesanan Spesial Berdasarkan ID
+function hapusSatuPesanan(idPesanan) {
+  if (confirm('Yakin ingin menghapus pesanan ini?')) {
+    let daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
+    daftarPesanan = daftarPesanan.filter(pesanan => pesanan.id !== idPesanan);
+    localStorage.setItem('pesananKantin', JSON.stringify(daftarPesanan));
+    tampilkanRekap();
+  }
 }
 
 function hapusSemuaPesanan() {
