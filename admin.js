@@ -1,16 +1,15 @@
-// Password asli dikunci dengan enkripsi Base64
-const ENCRYPTED_PASSWORD = "YmVsbGFqZWxlaw=="; 
-const MAX_ATTEMPTS = 3;             
-const BASE_LOCKOUT_TIME = 30000;    // Durasi awal hukuman: 30 detik
+const ENCRYPTED_PASSWORD = "YmVsbGFqZWxlaw==";
+const MAX_ATTEMPTS = 3;
+const BASE_LOCKOUT_TIME = 30000;    // 30 detik awal, berlipat ganda (30s, 60s, 120s...)
+const DEFAULT_IMAGE = 'https://via.placeholder.com/80?text=Menu';
 
 const defaultMenu = [
-  { id: 1, nama: 'Nasi Goreng Spesial', harga: 12000, ada: true },
-  { id: 2, nama: 'Mie Ayam Pangsit', harga: 10000, ada: true },
-  { id: 3, nama: 'Es Teh Manis', harga: 4000, ada: true },
-  { id: 4, nama: 'Roti Bakar Cokelat', harga: 7000, ada: false }
+  { id: 1, nama: 'Nasi Goreng Spesial', harga: 12000, ada: true, gambar: '', deskripsi: 'Nasi goreng lezat dengan suwiran ayam, telur, dan kerupuk.' },
+  { id: 2, nama: 'Mie Ayam Pangsit', harga: 10000, ada: true, gambar: '', deskripsi: 'Mie kenyal dengan topping ayam gurih dan pangsit renyah.' },
+  { id: 3, nama: 'Es Teh Manis', harga: 4000, ada: true, gambar: '', deskripsi: 'Teh manis segar disajikan dingin.' },
+  { id: 4, nama: 'Roti Bakar Cokelat', harga: 7000, ada: false, gambar: '', deskripsi: 'Roti bakar empuk dengan selai lumer cokelat di dalamnya.' }
 ];
 
-// 1. Cek Sesi Login saat Halaman Dimuat
 function cekSesiLogin() {
   const statusLogin = sessionStorage.getItem('adminLoggedIn');
   const loginContainer = document.getElementById('login-container');
@@ -28,7 +27,7 @@ function cekSesiLogin() {
   }
 }
 
-// 2. Proteksi Hukuman Lipat Ganda & Hitung Mundur
+// Proteksi Hukuman Lipat Ganda & Hitung Mundur 30 Detik
 function cekStatusKunci() {
   const lockoutUntil = localStorage.getItem('adminLockoutUntil');
   const btnLogin = document.getElementById('btn-login');
@@ -66,7 +65,6 @@ function cekStatusKunci() {
   if (msg) msg.textContent = '';
 }
 
-// 3. Proses Validasi Password dengan Enkripsi Aman
 function prosesLogin(e) {
   e.preventDefault();
 
@@ -101,7 +99,7 @@ function prosesLogin(e) {
 
     if (failedAttempts >= MAX_ATTEMPTS) {
       let level = parseInt(localStorage.getItem('adminLockoutLevel')) || 0;
-      const durasiHukuman = BASE_LOCKOUT_TIME * Math.pow(2, level);
+      const durasiHukuman = BASE_LOCKOUT_TIME * Math.pow(2, level); // Lipat ganda (30s, 60s, 120s...)
       const waktuHukuman = Date.now() + durasiHukuman;
       
       localStorage.setItem('adminLockoutUntil', waktuHukuman);
@@ -122,7 +120,6 @@ function logoutAdmin() {
   cekSesiLogin();
 }
 
-// 4. Manajemen Menu & Stok Otomatis
 function renderPengaturanStok() {
   const container = document.getElementById('stok-menu-list');
   if (!container) return;
@@ -137,7 +134,9 @@ function renderPengaturanStok() {
   daftarMenu.forEach(item => {
     const div = document.createElement('div');
     div.className = 'menu-item';
-    div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: linear-gradient(145deg, #141414, #1a1a1a); padding: 12px 16px; border-radius: 12px; border: 1px solid #222; margin-bottom: 10px;';
+    div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: linear-gradient(145deg, #141414, #1a1a1a); padding: 12px 16px; border-radius: 12px; border: 1px solid #222; margin-bottom: 10px; gap: 12px;';
+
+    const imgUrl = item.gambar || DEFAULT_IMAGE;
 
     const btnStatus = item.ada 
       ? `<button onclick="toggleStok(${item.id})" style="background: #28a745; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.78rem;">Stok Ready</button>`
@@ -146,7 +145,8 @@ function renderPengaturanStok() {
     const btnHapus = `<button onclick="hapusMenu(${item.id})" style="background: none; border: none; color: #777; margin-left: 8px; cursor: pointer; font-size: 1rem;"><i class="fa-solid fa-trash"></i></button>`;
 
     div.innerHTML = `
-      <div class="menu-info">
+      <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #333; flex-shrink: 0;">
+      <div class="menu-info" style="flex: 1;">
         <h4 style="font-size: 0.95rem; color: #fff; font-weight: 600; margin-bottom: 2px;">${item.nama}</h4>
         <span class="price" style="font-size: 0.85rem; color: var(--gold-bright); font-weight: 700;">Rp ${item.harga.toLocaleString('id-ID')}</span>
       </div>
@@ -174,16 +174,39 @@ function tambahMenuBaru(e) {
   e.preventDefault();
   const nama = document.getElementById('menu-nama').value.trim();
   const harga = parseInt(document.getElementById('menu-harga').value);
+  const deskripsi = document.getElementById('menu-deskripsi') ? document.getElementById('menu-deskripsi').value.trim() : '';
+  const fileInput = document.getElementById('menu-gambar');
 
   if (!nama || isNaN(harga)) return;
 
-  let daftarMenu = JSON.parse(localStorage.getItem('daftarMenuKantin')) || defaultMenu;
-  daftarMenu.push({ id: Date.now(), nama: nama, harga: harga, ada: true });
+  const simpanKeStorage = (gambarBase64 = '') => {
+    let daftarMenu = JSON.parse(localStorage.getItem('daftarMenuKantin')) || defaultMenu;
+    daftarMenu.push({ 
+      id: Date.now(), 
+      nama: nama, 
+      harga: harga, 
+      ada: true, 
+      gambar: gambarBase64,
+      deskripsi: deskripsi
+    });
 
-  localStorage.setItem('daftarMenuKantin', JSON.stringify(daftarMenu));
-  document.getElementById('menu-nama').value = '';
-  document.getElementById('menu-harga').value = '';
-  renderPengaturanStok();
+    localStorage.setItem('daftarMenuKantin', JSON.stringify(daftarMenu));
+    document.getElementById('menu-nama').value = '';
+    document.getElementById('menu-harga').value = '';
+    if(document.getElementById('menu-deskripsi')) document.getElementById('menu-deskripsi').value = '';
+    if (fileInput) fileInput.value = '';
+    renderPengaturanStok();
+  };
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      simpanKeStorage(evt.target.result);
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {
+    simpanKeStorage('');
+  }
 }
 
 function hapusMenu(id) {
@@ -195,7 +218,6 @@ function hapusMenu(id) {
   }
 }
 
-// 5. Rekap Pesanan Masuk & Fitur Hapus 1-1
 function tampilkanRekap() {
   const rekapContainer = document.getElementById('rekap-container');
   if (!rekapContainer) return;
@@ -229,13 +251,13 @@ function tampilkanRekap() {
       </div>
       <ul class="rekap-list">${rincianItems}</ul>
       <div>Catatan: <em>${pesanan.catatan}</em></div>
+      <div style="margin-top: 4px; color: var(--gold-bright);">Metode Pembayaran: <strong>${pesanan.metodePembayaran || 'Tunai'}</strong></div>
       <div style="margin-top: 6px; color: var(--gold-main);">Total Tagihan: <strong>Rp ${pesanan.total.toLocaleString('id-ID')}</strong></div>
     `;
     rekapContainer.appendChild(div);
   });
 }
 
-// Fungsi Baru: Hapus 1 Pesanan Spesial Berdasarkan ID
 function hapusSatuPesanan(idPesanan) {
   if (confirm('Yakin ingin menghapus pesanan ini?')) {
     let daftarPesanan = JSON.parse(localStorage.getItem('pesananKantin')) || [];
