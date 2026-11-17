@@ -81,7 +81,6 @@ header .subtitle {
   gap: 10px;
 }
 
-/* Perbaikan Form & Input agar tidak numpuk */
 .form-group {
   margin-bottom: 14px;
   width: 100%;
@@ -95,7 +94,7 @@ header .subtitle {
   font-weight: 500;
 }
 
-.form-group input {
+.form-group input, .form-group textarea, .form-group select {
   width: 100% !important;
   padding: 12px 14px !important;
   background-color: #171717 !important;
@@ -106,12 +105,17 @@ header .subtitle {
   outline: none;
 }
 
-.form-group input:focus {
+.form-group input[type="file"] {
+  padding: 8px !important;
+  background-color: #111 !important;
+  cursor: pointer;
+}
+
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   border-color: var(--danger-main) !important;
   box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.15);
 }
 
-/* Tombol Submit Login */
 .btn-submit {
   width: 100% !important;
   padding: 12px !important;
@@ -153,7 +157,6 @@ header .subtitle {
   font-weight: bold;
 }
 
-/* Posisi Kotak Login di Tengah Layar HP */
 .login-wrapper {
   display: flex;
   justify-content: center;
