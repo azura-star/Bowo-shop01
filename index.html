@@ -21,6 +21,7 @@
     <!-- Daftar Menu Makanan -->
     <section class="card">
       <h2><i class="fa-solid fa-burger"></i> Pilih Menu Makanan</h2>
+      <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Klik pada menu untuk melihat gambar detail & deskripsi.</p>
       <div id="menu-list" class="menu-list">
         <!-- Render otomatis dari Admin -->
       </div>
@@ -48,6 +49,15 @@
           <input type="text" id="kelas" placeholder="Contoh: 8-B" required>
         </div>
         <div class="form-group">
+          <label><i class="fa-solid fa-wallet"></i> Metode Pembayaran:</label>
+          <select id="metode-pembayaran" required>
+            <option value="" disabled selected>Pilih metode pembayaran</option>
+            <option value="QRIS">QRIS (Scan & Pay)</option>
+            <option value="Transfer Bank (TF)">Transfer Bank (TF)</option>
+            <option value="Bayar di Kantin (Tunai)">Bayar di Kantin (Tunai)</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label><i class="fa-solid fa-note-sticky"></i> Catatan (Opsional):</label>
           <input type="text" id="catatan" placeholder="Contoh: Jangan pakai es / pedas">
         </div>
@@ -57,19 +67,26 @@
       </form>
     </section>
 
-    <!-- Bukti Nota & Tombol Batalkan Pesanan -->
-    <section id="nota-section" class="card nota-card" style="display: none;">
-      <h2><i class="fa-solid fa-receipt"></i> Bukti Pesanan Berhasil!</h2>
-      <p style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">Screenshot bukti ini untuk ditunjukkan saat pengambilan.</p>
-      <div id="detail-nota"></div>
-      
-      <!-- Tombol Batalkan Pesanan -->
-      <button onclick="batalkanPesananAktif()" style="width: 100%; margin-top: 14px; padding: 10px; background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border: 1px solid #ff4d4d; border-radius: 8px; font-weight: bold; cursor: pointer;">
-        <i class="fa-solid fa-ban"></i> Batalkan Pesanan Ini
-      </button>
+    <!-- Daftar Riwayat Pesanan Siswa di Sesi Ini (Bisa Menampilkan Banyak Nota sekaligus jika pesan beberapa kali) -->
+    <section id="nota-container-section" class="card nota-card" style="display: none;">
+      <h2><i class="fa-solid fa-receipt"></i> Daftar Pesanan Aktif Kamu</h2>
+      <p style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">Semua pesanan yang Anda buat akan muncul di bawah ini.</p>
+      <div id="list-semua-nota"></div>
     </section>
 
   </main>
+
+  <!-- MODAL POPUP DETAIL MENU -->
+  <div id="menu-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card">
+      <button type="button" onclick="tutupModalMenu()" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      <img id="modal-img" src="" alt="Menu Image" class="modal-img">
+      <h3 id="modal-nama" style="color: var(--gold-main); font-size: 1.1rem; margin-top: 12px;"></h3>
+      <p id="modal-harga" style="color: var(--gold-bright); font-weight: bold; font-size: 0.95rem; margin-bottom: 6px;"></p>
+      <p id="modal-deskripsi" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4;"></p>
+      <button id="modal-btn-tambah" type="button" class="btn-submit">+ Tambah ke Keranjang</button>
+    </div>
+  </div>
 
   <footer class="footer-link">
     <a href="admin.html">Login Penjual (Admin)</a>
